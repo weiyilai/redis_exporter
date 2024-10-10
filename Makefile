@@ -31,10 +31,13 @@ docker-test:
 .PHONY: test
 test:
 	contrib/tls/gen-test-certs.sh
-	TEST_REDIS_URI="redis://localhost:16384" \
+
+	TEST_REDIS_URI="redis://localhost:16385" \
+	TEST_REDIS7_URI="redis://localhost:16385" \
 	TEST_REDIS5_URI="redis://localhost:16383" \
 	TEST_REDIS6_URI="redis://localhost:16379" \
 	TEST_VALKEY7_URI="redis://localhost:16384" \
+	TEST_VALKEY8_URI="redis://localhost:16382" \
 	TEST_REDIS_2_8_URI="redis://localhost:16381" \
 	TEST_KEYDB01_URI="redis://localhost:16401" \
 	TEST_KEYDB02_URI="redis://localhost:16402" \
@@ -45,7 +48,8 @@ test:
 	TEST_REDIS_CLUSTER_PASSWORD_URI="redis://localhost:17006" \
 	TEST_TILE38_URI="redis://localhost:19851" \
 	TEST_REDIS_SENTINEL_URI="redis://localhost:26379" \
-	go test -v -covermode=atomic -cover -race -coverprofile=coverage.txt -p 1 ./... 
+	TEST_REDIS_MODULES_URI="redis://localhost:36379" \
+	go test -v -covermode=atomic -cover -race -coverprofile=coverage.txt -p 1 ./...
 
 .PHONY: lint
 lint:
@@ -59,7 +63,7 @@ lint:
 checks:
 	go vet ./...
 	echo "checking gofmt"
-	echo " ! gofmt -d *.go       2>&1 | read " | bash
+	@if [ "$(shell gofmt -e -l . | wc -l)" -ne 0 ]; then exit 1; fi
 	echo "checking gofmt - DONE"
 
 .PHONY: mixin
