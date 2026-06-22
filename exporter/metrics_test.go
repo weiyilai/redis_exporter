@@ -23,7 +23,7 @@ func TestSanitizeMetricName(t *testing.T) {
 func TestRegisterConstHistogram(t *testing.T) {
 	metricName := "foo"
 	for _, inc := range []bool{false, true} {
-		exp := getTestExporterWithOptions(Options{Namespace: "test", AppendInstanceRoleLabel: inc})
+		exp := getTestExporterWithOptions(t, Options{Namespace: "test", AppendInstanceRoleLabel: inc})
 		ch := make(chan prometheus.Metric)
 		go func() {
 			exp.createMetricDescription(metricName, []string{"test"})
@@ -49,7 +49,7 @@ func TestRegisterConstHistogram(t *testing.T) {
 func TestRegisterConstMetric(t *testing.T) {
 	metricName := "bar"
 	for _, inc := range []bool{false, true} {
-		exp := getTestExporterWithOptions(Options{Namespace: "test", AppendInstanceRoleLabel: inc})
+		exp := getTestExporterWithOptions(t, Options{Namespace: "test", AppendInstanceRoleLabel: inc})
 		ch := make(chan prometheus.Metric)
 		go func() {
 			exp.createMetricDescription(metricName, []string{"test"})
@@ -73,7 +73,7 @@ func TestRegisterConstMetric(t *testing.T) {
 }
 
 func TestFindOrCreateMetricsDescriptionFindExisting(t *testing.T) {
-	exp := getTestExporter()
+	exp := getTestExporter(t)
 	exp.metricDescriptions = map[string]*prometheus.Desc{}
 
 	metricName := "foo"
@@ -92,7 +92,7 @@ func TestFindOrCreateMetricsDescriptionFindExisting(t *testing.T) {
 }
 
 func TestFindOrCreateMetricsDescriptionCreateNew(t *testing.T) {
-	exp := getTestExporter()
+	exp := getTestExporter(t)
 	exp.metricDescriptions = map[string]*prometheus.Desc{}
 
 	metricName := "foo"
