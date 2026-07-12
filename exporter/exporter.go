@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -125,6 +126,12 @@ func NewRedisExporter(uri string, opts Options) (*Exporter, error) {
 	}
 
 	log.Debugf("NewRedisExporter = using redis uri: %s", uri)
+
+	if opts.InclSearchIndexesMetrics {
+		if _, err := regexp.Compile(opts.CheckSearchIndexes); err != nil {
+			return nil, fmt.Errorf("invalid check-search-indexes regex %q: %w", opts.CheckSearchIndexes, err)
+		}
+	}
 
 	if opts.Registry == nil {
 		opts.Registry = prometheus.NewRegistry()

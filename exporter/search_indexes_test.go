@@ -109,3 +109,27 @@ func TestExtractSearchIndexesMetrics(t *testing.T) {
 		}
 	}
 }
+
+func TestNewRedisExporterSearchIndexRegex(t *testing.T) {
+	tests := []struct {
+		name    string
+		regex   string
+		wantErr bool
+	}{
+		{name: "valid", regex: "^idx:", wantErr: false},
+		{name: "invalid", regex: "[", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewRedisExporter("", Options{
+				Namespace:                "test",
+				InclSearchIndexesMetrics: true,
+				CheckSearchIndexes:       tt.regex,
+			})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewRedisExporter() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
