@@ -528,3 +528,51 @@ func Test_parseMetricsLatencyStats(t *testing.T) {
 		})
 	}
 }
+
+// instance_info must survive a Valkey 8.0 -> 8.1 upgrade that adds the new
+// valkey_release_stage INFO field between scrapes, without a restart.
+func TestInstanceInfoLabelsChangeBetweenScrapes(t *testing.T) {
+	e, err := NewRedisExporter("redis://localhost:6379", Options{Namespace: "test"})
+	if err != nil {
+		t.Fatalf("NewRedisExporter() err: %s", err)
+	}
+	// force the lazy init of metricDescriptionLabels on the first scrape
+	e.metricDescriptionLabels = nil
+
+	// Valkey 8.0 has no valkey_release_stage field
+	infoBefore := "# Server\r\nredis_version:7.2.5\r\nredis_mode:standalone\r\nrun_id:abc\r\nvalkey_version:8.0.0\r\n"
+	// Valkey 8.1 added valkey_release_stage
+	infoAfter := "# Server\r\nredis_version:7.2.5\r\nredis_mode:standalone\r\nrun_id:abc\r\nvalkey_version:8.1.0\r\nvalkey_release_stage:ga\r\n"
+
+	descs := make([]string, 2)
+	for i, info := range []string{infoBefore, infoAfter} {
+		ch := make(chan prometheus.Metric)
+		go func() {
+			e.extractInfoMetrics(ch, info, 0)
+			close(ch)
+		}()
+
+		for m := range ch {
+			if strings.Contains(m.Desc().String(), "test_instance_info") {
+				descs[i] = m.Desc().String()
+			}
+		}
+		if descs[i] == "" {
+			t.Fatalf("scrape %d: test_instance_info metric missing after the instance_info label set changed", i)
+		}
+	}
+
+	// the description must be rebuilt with the new label set, not the stale cached one
+	if strings.Contains(descs[0], "valkey_release_stage") {
+		t.Errorf("first scrape unexpectedly exposed valkey_release_stage label:\n%s", descs[0])
+	}
+	if !strings.Contains(descs[1], "valkey_release_stage") {
+		t.Errorf("second scrape missing new valkey_release_stage label after the upgrade:\n%s", descs[1])
+	}
+
+	// a metric with no explicit labels must always return the cached description
+	noLabel := e.createMetricDescription("uptime_in_seconds", nil)
+	if noLabel != e.createMetricDescription("uptime_in_seconds", nil) {
+		t.Errorf("expected cached description to be reused for a metric without labels")
+	}
+}
